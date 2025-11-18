@@ -1,0 +1,106 @@
+import requests
+import html
+import random
+
+
+def fetch_trivia(difficulty):
+    url = f"https://opentdb.com/api.php?amount=10&category=15&difficulty={difficulty}&type=multiple"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        return data["results"]
+    else:
+        print(f"Erro ao buscar perguntas. Status: {response.status_code}")
+        return []
+
+
+def fetch_tradutor(text):
+    url = "https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=pt-BR&q=" + html.unescape(text)
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            return data[0][0]
+        except:
+            return html.unescape(text)
+    else:
+        return html.unescape(text)
+
+
+def quiz():
+    print("===== QUIZ TRIVIA =====")
+    print("Selecione a dificuldade:")
+    print("[1] Fácil")
+    print("[2] Médio")
+    print("[3] Difícil")
+
+    diff_choice = input("Digite a opção: ")
+
+    difficulty_map = {
+        "1": "easy",
+        "2": "medium",
+        "3": "hard"
+    }
+
+    difficulty = difficulty_map.get(diff_choice, "easy")
+
+    print("\nBuscando perguntas...\n")
+    questions = fetch_trivia(difficulty)
+
+    if not questions:
+        print("Não foi possível carregar o quiz.")
+        return
+
+    score = 0
+    question_number = 1
+
+    for q in questions:
+        print(f"\n--- Questão {question_number} ---")
+
+        question_text = html.unescape(q["question"])
+        correct = html.unescape(q["correct_answer"])
+        incorrect = [html.unescape(item) for item in q["incorrect_answers"]]
+
+      
+        question_text = fetch_tradutor(question_text)
+        correct_pt = fetch_tradutor(correct)
+        incorrect_pt = [fetch_tradutor(item) for item in incorrect]
+
+
+        options = incorrect_pt + [correct_pt]
+        random.shuffle(options)
+
+        print("Pergunta:", question_text)
+
+
+        for i, opt in enumerate(options, start=1):
+            print(f"{i}. {opt}")
+
+
+        answer = input("Sua resposta (1-4): ")
+
+
+        try:
+            chosen = options[int(answer) - 1]
+            if chosen == correct_pt:
+                print("✔ Resposta correta!")
+                score += 1
+            else:
+                print(f"✘ Resposta errada! A resposta correta era: {correct_pt}")
+        except:
+            print("Entrada inválida! Questão considerada errada.")
+
+        question_number += 1
+
+  
+    print("\n===== PLACAR FINAL =====")
+    print(f"Você acertou {score} de {len(questions)} questões.")
+    print("=========================")
+
+
+
+if __name__ == "__main__":
+    quiz()
+
